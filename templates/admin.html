@@ -8,6 +8,14 @@
 <body>
     <!-- admin panel for teachers -->
     <h1>admin dashboard</h1>
-    <input type="file" placeholder="upload result file" accept=".csv" name="csvFile">
-</body>
+<form action="/admin/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv" required>
+    <button type="submit">Upload</button>
+</form>
+<!-- button to logout  -->
+<a href="/logout">Logout</a>
+
+{% with messages = get_flashed_messages() %}
+  {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+{% endwith %}</body>
 </html>
