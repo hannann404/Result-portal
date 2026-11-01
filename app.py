@@ -4,7 +4,7 @@ import os
 from hmac import compare_digest
 from functools import wraps  # <-- 1. Needed for admin_required decorator
 from werkzeug.utils import secure_filename
-# from data import process_results
+from data import process_results
 
 # --- STEP 1: SETUP APP ---
 app = Flask(__name__)  # create your website
@@ -71,36 +71,45 @@ def adminDashboard():
     return render_template("admin.html")
 
 @app.route("/admin/upload", methods=["GET", "POST"])
-@admin_required  # <-- THIS STOPS ANYONE WITHOUT LOGIN
+@admin_required
 def adminUpload():
-    """Upload CSV file - only for logged in admin"""
     if request.method == "POST":
-        # check if file part exists
         if 'file' not in request.files:
             flash("No file selected", "danger")
             return redirect(request.url)
-            
-        file = request.files['file']
         
-        # check if file is valid
+        file = request.files['file']
         if file.filename == '':
             flash("No file selected", "danger")
             return redirect(request.url)
             
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)  # secure the filename
+            # ALWAYS save as results.csv - so you don't get data.csv error
+            filename = "results.csv"  
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            
             file.save(filepath)
-            
-            # Optional: process your results file
-            # process_results(filepath)
-            
-            flash(f"File {filename} uploaded successfully!", "success")
+            flash(f"File uploaded to {filepath}", "success")
             return redirect(url_for('adminDashboard'))
-        else:
-            flash("Only CSV files allowed", "danger")
             
     return render_template("admin_upload.html")  # create this html file
+#only for testing
+@app.route("/test-data")
+def testData():
+    path = os.path.join(app.config["UPLOAD_FOLDER"], "results.csv")
+    if not os.path.exists(path):
+        return "File not uploaded yet! Go to /admin/upload"
+    
+    df = process_results(path)
+    
+    # This will show data as HTML table on website
+    return f"""
+    <h2>Detected {len(df)} students</h2>
+    <h3>Columns: {df.columns.tolist()}</h3>
+    {df.head(10).to_html()}
+    <br><a href='/admin/upload'>Go back</a>
+    """
+    
 
 # --- STEP 7: LOGOUT ROUTE ---
 @app.route('/logout')
